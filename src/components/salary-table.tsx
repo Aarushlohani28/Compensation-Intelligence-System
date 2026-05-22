@@ -38,6 +38,40 @@ type Salary = {
 
 const columns: ColumnDef<Salary>[] = [
   {
+    id: "select",
+    header: ({ table }) => (
+      <input
+        type="checkbox"
+        checked={table.getIsAllPageRowsSelected()}
+        onChange={table.getToggleAllPageRowsSelectedHandler()}
+        className="w-4 h-4 cursor-pointer"
+      />
+    ),
+    cell: ({ row }) => (
+      <input
+        type="checkbox"
+        checked={row.getIsSelected()}
+        onChange={row.getToggleSelectedHandler()}
+        className="w-4 h-4 cursor-pointer"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
+    accessorKey: "id",
+    header: "ID",
+    cell: ({ row }) => (
+      <div 
+        className="text-xs font-mono text-muted-foreground cursor-pointer hover:text-foreground"
+        title={row.original.id}
+        onClick={() => navigator.clipboard.writeText(row.original.id)}
+      >
+        {row.original.id.substring(0, 8)}...
+      </div>
+    )
+  },
+  {
     accessorKey: "company",
     header: ({ column }) => {
       return (
@@ -187,6 +221,7 @@ export function SalaryTable() {
   }, [page, queryCompany, queryRole, queryLevel, queryLocation]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [rowSelection, setRowSelection] = useState({});
 
   const table = useReactTable({
     data,
@@ -194,10 +229,15 @@ export function SalaryTable() {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
+    onRowSelectionChange: setRowSelection,
     state: {
       sorting,
+      rowSelection,
     },
   });
+
+  const selectedRows = table.getSelectedRowModel().rows;
+  const selectedIds = selectedRows.map(r => r.original.id);
 
   return (
     <div className="w-full space-y-4">
@@ -227,6 +267,21 @@ export function SalaryTable() {
           className="flex-1"
         />
       </div>
+
+      {selectedIds.length > 0 && (
+        <div className="flex items-center justify-between bg-secondary/50 p-3 rounded-md border">
+          <span className="text-sm font-medium">
+            {selectedIds.length} {selectedIds.length === 1 ? 'row' : 'rows'} selected
+          </span>
+          <Button 
+            disabled={selectedIds.length !== 2}
+            onClick={() => window.location.href = `/compare?id1=${selectedIds[0]}&id2=${selectedIds[1]}`}
+            className={selectedIds.length === 2 ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+          >
+            {selectedIds.length === 2 ? "Compare Selected" : "Select exactly 2 to compare"}
+          </Button>
+        </div>
+      )}
       
       <div className="rounded-md border">
         <Table>
