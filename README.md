@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Compensation Intelligence Platform
 
-## Getting Started
+A production-grade, highly structured MVP for tech compensation intelligence, inspired by platforms like Levels.fyi. 
 
-First, run the development server:
+## Project Overview
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+This platform focuses on providing reliable, standardized, and easily queryable compensation data. We emphasize structure, levels normalization, and high-confidence data entry. This is not a social network or review site; it is a serious analytics engine designed to help tech professionals make informed career decisions.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+* **Frontend:** Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, shadcn/ui.
+* **Backend:** Next.js API Routes (RESTful).
+* **Database:** PostgreSQL, Prisma ORM (v7 adapter with pg).
+* **Validation & Types:** Zod validation schema.
+* **Data Visualization:** TanStack Table, Recharts.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Architecture
 
-## Learn More
+- **Normalization Pipeline:** All incoming company names are lowercase-standardized and stripped of corporate suffixes ("Inc", "LLC") automatically before storage.
+- **Confidence Scoring Engine:** Computes a 0.0 - 1.0 confidence score for every ingested salary. The algorithm checks compensation ratios, level-experience compatibility, and missing optional fields.
+- **Duplicate Detection:** Prevents inserting accidental duplicates if the role, level, and location match existing records within a 5% total compensation margin.
+- **API Flow:** Clean REST APIs (`GET /api/salaries`, `POST /api/ingest-salary`, `GET /api/compare`) with pagination and robust server-side error handling.
 
-To learn more about Next.js, take a look at the following resources:
+## Database Setup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Install PostgreSQL** (or use a managed service like Neon/Supabase).
+2. Set your `DATABASE_URL` in the `.env` file at the root of the project:
+   ```env
+   DATABASE_URL="postgresql://user:password@host:port/dbname?schema=public"
+   ```
+3. Run Prisma Migrations:
+   ```bash
+   npx prisma db push
+   ```
+4. Seed the database (generates 400 realistic records for top tech companies):
+   ```bash
+   npx prisma db seed
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Development Instructions
 
-## Deploy on Vercel
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Start the development server:
+   ```bash
+   npm run dev
+   ```
+3. The app will be available at `http://localhost:3000`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Features
+- **Data Table:** Fully sortable, filterable (by company), paginated data table.
+- **Comparison Engine:** Side-by-side comparison of two compensation records showing numerical and percentage differentials for base, bonus, stock, and total comp.
+- **Company Analytics:** Median comp, average comp, and level distribution breakdowns for specific companies.
+- **Graceful Error Handling:** Handled database disconnections and missing data scenarios gracefully.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Tradeoffs and Future Improvements
+- **Security:** In a full production app, API endpoints should be rate-limited and ingestion routes should include Recaptcha/CSRF checks.
+- **Realtime / DB Layer:** Direct Postgres querying is used. For massive scaling, a caching layer (e.g. Redis) should be introduced for `/api/salaries` and company aggregation data.
+- **Client Side State:** We utilized simple `useState` and `useEffect` fetches for the MVP for fast load times. For advanced apps, `react-query` could be adopted on the client for extensive caching and mutation handling.
