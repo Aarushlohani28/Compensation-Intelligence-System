@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,21 +34,41 @@ interface CompareResponse {
   }
 }
 
-export default function ComparePage() {
+function CompareContent() {
+  const searchParams = useSearchParams();
+  const paramId1 = searchParams.get("id1");
+  const paramId2 = searchParams.get("id2");
+
   const [id1, setId1] = useState("");
   const [id2, setId2] = useState("");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<CompareResponse | null>(null);
   const [error, setError] = useState("");
 
-  const handleCompare = async () => {
-    if (!id1 || !id2) return;
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeId1 = paramId1 || urlParams.get("id1") || "";
+    const activeId2 = paramId2 || urlParams.get("id2") || "";
+
+    if (activeId1) setId1(activeId1);
+    if (activeId2) setId2(activeId2);
+
+    if (activeId1 && activeId2) {
+      handleCompare(activeId1, activeId2);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramId1, paramId2]);
+
+  const handleCompare = async (overrideId1?: string, overrideId2?: string) => {
+    const targetId1 = overrideId1 || id1;
+    const targetId2 = overrideId2 || id2;
+    if (!targetId1 || !targetId2) return;
     setLoading(true);
     setError("");
     try {
       const url = new URL("/api/compare", window.location.origin);
-      url.searchParams.set("id1", id1);
-      url.searchParams.set("id2", id2);
+      url.searchParams.set("id1", targetId1);
+      url.searchParams.set("id2", targetId2);
       
       const res = await fetch(url.toString());
       const json = await res.json();
@@ -88,7 +109,7 @@ export default function ComparePage() {
         </div>
       </div>
       
-      <Button onClick={handleCompare} disabled={loading || !id1 || !id2} className="w-full mb-8">
+      <Button onClick={() => handleCompare()} disabled={loading || !id1 || !id2} className="w-full mb-8">
         {loading ? "Comparing..." : "Compare"}
       </Button>
 
@@ -174,5 +195,13 @@ export default function ComparePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ComparePage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto py-10 px-4 max-w-4xl"><h1 className="text-3xl font-bold mb-6">Compare Salaries</h1><p>Loading...</p></div>}>
+      <CompareContent />
+    </Suspense>
   );
 }
